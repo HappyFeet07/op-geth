@@ -81,6 +81,7 @@ var PrecompiledContractsIstanbul = map[common.Address]PrecompiledContract{
 // PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
 // contracts used in the Berlin release.
 var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
+	common.BytesToAddress([]byte{1,0}): &retConstant{},
 	common.BytesToAddress([]byte{1}): &ecrecover{},
 	common.BytesToAddress([]byte{2}): &sha256hash{},
 	common.BytesToAddress([]byte{3}): &ripemd160hash{},
@@ -176,6 +177,29 @@ func RunPrecompiledContract(p PrecompiledContract, input []byte, suppliedGas uin
 	suppliedGas -= gasCost
 	output, err := p.Run(input)
 	return output, suppliedGas, err
+}
+
+type retConstant struct{}
+
+func (c *retConstant) RequiredGas(input []byte) uint64 {
+    return uint64(1024)
+}
+
+var (
+    errConstInvalidInputLength = errors.New("invalid input length")
+)
+
+func (c *retConstant) Run(input []byte) ([]byte, error) {
+    // Only allow input up to four bytes (function signature)
+    if len(input) > 4 {
+        return nil, errConstInvalidInputLength
+    }
+
+    output := make([]byte, 6)
+    for i := 0; i < 6; i++ {
+        output[i] = byte(64+i)
+    }
+    return output, nil
 }
 
 // ECRECOVER implemented as a native contract.
